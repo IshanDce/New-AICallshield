@@ -1,0 +1,47 @@
+# Android
+*.iml
+.gradle/
+local.properties
+.idea/
+*.apk
+*.aar
+*.ap_
+*.dex
+/build/
+/app/build/
+/captures
+.externalNativeBuild/
+.cxx/
+
+# Kotlin
+*.class
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Environment
+.env
+*.env
+venv/
+.venv/
+
+# Firebase
+serviceAccount.json
+google-services.json
+
+# IDE
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
