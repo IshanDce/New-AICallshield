@@ -1,20 +1,16 @@
 # Android
 *.iml
 .gradle/
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
+local.properties
+.idea/
 .DS_Store
 /build
 /captures
 .externalNativeBuild
 .cxx
 *.apk
-*.ap_ 
+*.ap_
+*.aab
 
 # Python
 __pycache__/
@@ -33,6 +29,11 @@ dist/
 # VS Code
 .vscode/
 
+# IDE / Tools
+.zencoder/
+.zenflow/
+
 # OS
 Thumbs.db
 Desktop.ini
+.DS_Store
