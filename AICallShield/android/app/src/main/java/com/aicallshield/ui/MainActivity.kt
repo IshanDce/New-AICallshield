@@ -24,6 +24,7 @@ import com.aicallshield.ui.theme.AICallShieldTheme
 import com.aicallshield.viewmodel.CallHistoryViewModel
 import com.aicallshield.viewmodel.CallScreeningViewModel
 import com.aicallshield.viewmodel.SettingsViewModel
+import com.aicallshield.viewmodel.UserViewModel
 
 /**
  * Main Activity — hosts the navigation and bottom bar.
@@ -55,6 +56,8 @@ sealed class Screen(val route: String, val label: String) {
         fun createRoute(callId: String) = "call_detail/$callId"
     }
     object Settings : Screen("settings", "Settings")
+    object PersonalDetails : Screen("personal_details", "Personal Details")
+    object AssistantVoice : Screen("assistant_voice", "Assistant Voice")
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -62,45 +65,13 @@ sealed class Screen(val route: String, val label: String) {
 fun MainApp() {
     val navController = rememberNavController()
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
-
-    val showBottomBar = currentRoute in listOf(Screen.Home.route, Screen.History.route, Screen.Settings.route)
+    val userViewModel: UserViewModel = viewModel()
+    val userName by userViewModel.userName.collectAsState()
+    val userGender by userViewModel.userGender.collectAsState()
 
     Scaffold(
         topBar = {
-            if (currentRoute == Screen.Home.route) {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = "🛡️ AICallShield",
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                )
-            }
-        },
-        bottomBar = {
-            if (showBottomBar) {
-                NavigationBar {
-                    NavigationBarItem(
-                        icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                        label = { Text("Home") },
-                        selected = currentRoute == Screen.Home.route,
-                        onClick = { navController.navigate(Screen.Home.route) { popUpTo(Screen.Home.route) { inclusive = true } } }
-                    )
-                    NavigationBarItem(
-                        icon = { Icon(Icons.Default.History, contentDescription = "History") },
-                        label = { Text("History") },
-                        selected = currentRoute == Screen.History.route,
-                        onClick = { navController.navigate(Screen.History.route) { popUpTo(Screen.Home.route) } }
-                    )
-                    NavigationBarItem(
-                        icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
-                        label = { Text("Settings") },
-                        selected = currentRoute == Screen.Settings.route,
-                        onClick = { navController.navigate(Screen.Settings.route) { popUpTo(Screen.Home.route) } }
-                    )
-                }
-            }
+            // HomeScreen has its own custom top bar, so skip the default one
         }
     ) { innerPadding ->
         NavHost(
@@ -110,11 +81,15 @@ fun MainApp() {
         ) {
             composable(Screen.Home.route) {
                 HomeScreen(
+                    userName = userName,
                     onStartDemo = { number ->
                         navController.navigate(Screen.Screening.createRoute(number))
                     },
                     onViewHistory = {
                         navController.navigate(Screen.History.route)
+                    },
+                    onOpenSettings = {
+                        navController.navigate(Screen.Settings.route) { popUpTo(Screen.Home.route) }
                     }
                 )
             }
@@ -183,24 +158,40 @@ fun MainApp() {
             }
 
             composable(Screen.Settings.route) {
-                val settingsViewModel: SettingsViewModel = viewModel()
-                val isAIEnabled by settingsViewModel.isAIScreeningEnabled.collectAsState()
-                val isAutoBlock by settingsViewModel.isAutoBlockEnabled.collectAsState()
-                val spamThreshold by settingsViewModel.spamThreshold.collectAsState()
-                val selectedVoice by settingsViewModel.selectedVoice.collectAsState()
-                val serverStatus by settingsViewModel.serverStatus.collectAsState()
-
                 SettingsScreen(
-                    isAIScreeningEnabled = isAIEnabled,
-                    onAIScreeningToggle = settingsViewModel::toggleAIScreening,
-                    isAutoBlockEnabled = isAutoBlock,
-                    onAutoBlockToggle = settingsViewModel::toggleAutoBlock,
-                    spamThreshold = spamThreshold,
-                    onSpamThresholdChange = settingsViewModel::updateSpamThreshold,
-                    selectedVoice = selectedVoice,
-                    onVoiceChange = settingsViewModel::updateVoice,
-                    serverStatus = serverStatus,
-                    onTestConnection = settingsViewModel::testConnection
+                    userName = userName,
+                    onBack = { navController.popBackStack() },
+                    onOpenPersonalDetails = {
+                        navController.navigate(Screen.PersonalDetails.route)
+                    },
+                    onOpenAssistantVoice = {
+                        navController.navigate(Screen.AssistantVoice.route)
+                    }
+                )
+            }
+
+            composable(Screen.PersonalDetails.route) {
+                PersonalDetailsScreen(
+                    initialName = userName,
+                    initialGender = userGender,
+                    onBack = { navController.popBackStack() },
+                    onConfirm = { name, gender ->
+                        userViewModel.saveProfile(name, gender)
+                    }
+                )
+            }
+
+            composable(Screen.AssistantVoice.route) {
+                val settingsViewModel: SettingsViewModel = viewModel()
+                val selectedVoice by settingsViewModel.selectedVoice.collectAsState()
+
+                AssistantVoiceScreen(
+                    userName = userName,
+                    initialVoice = selectedVoice,
+                    onBack = { navController.popBackStack() },
+                    onConfirm = { voice ->
+                        settingsViewModel.updateVoice(voice)
+                    }
                 )
             }
         }

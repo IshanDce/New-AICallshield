@@ -1,7 +1,11 @@
 package com.aicallshield.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -9,229 +13,223 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.aicallshield.ui.theme.*
 
 /**
- * Settings screen for configuring AI screening behavior.
+ * Settings screen — Equal AI inspired clean design.
+ *
+ * Layout:
+ *  1. Back arrow + "Settings" title
+ *  2. User profile card (avatar, name, phone)
+ *  3. Personal Details row
+ *  4. Assistant Voice row
+ *  5. 24/7 Priority Support card
+ *  6. Version info at bottom
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    isAIScreeningEnabled: Boolean,
-    onAIScreeningToggle: (Boolean) -> Unit,
-    isAutoBlockEnabled: Boolean,
-    onAutoBlockToggle: (Boolean) -> Unit,
-    spamThreshold: Float,
-    onSpamThresholdChange: (Float) -> Unit,
-    selectedVoice: String,
-    onVoiceChange: (String) -> Unit,
-    serverStatus: String,
-    onTestConnection: () -> Unit,
+    userName: String = "",
+    onBack: () -> Unit = {},
+    onOpenPersonalDetails: () -> Unit = {},
+    onOpenAssistantVoice: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+
     Column(
         modifier = modifier
             .fillMaxSize()
+            .background(Color.White)
             .verticalScroll(rememberScrollState())
     ) {
-        // ── AI Screening ─────────────────────────────────────────────
-        SettingsSection(title = "🤖 AI Screening") {
-            SettingsToggle(
-                title = "Enable AI Screening",
-                description = "Automatically screen unknown calls with AI",
-                checked = isAIScreeningEnabled,
-                onCheckedChange = onAIScreeningToggle
-            )
-
-            SettingsToggle(
-                title = "Auto-Block Spam",
-                description = "Automatically block calls above spam threshold",
-                checked = isAutoBlockEnabled,
-                onCheckedChange = onAutoBlockToggle
-            )
-        }
-
-        // ── Spam Detection ───────────────────────────────────────────
-        SettingsSection(title = "🛡️ Spam Detection") {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "Spam Threshold: ${(spamThreshold * 100).toInt()}%",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
+        // ── 1. Top Bar ───────────────────────────────────────────
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Gray900
                 )
-                Text(
-                    text = "Calls above this score will be flagged as spam",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Gray600
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Slider(
-                    value = spamThreshold,
-                    onValueChange = onSpamThresholdChange,
-                    valueRange = 0.3f..0.9f,
-                    steps = 6,
-                    colors = SliderDefaults.colors(
-                        thumbColor = Blue500,
-                        activeTrackColor = Blue500
-                    )
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("Sensitive (30%)", style = MaterialTheme.typography.labelSmall, color = Gray600)
-                    Text("Strict (90%)", style = MaterialTheme.typography.labelSmall, color = Gray600)
-                }
             }
+            Text(
+                text = "Settings",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = Gray900
+            )
         }
 
-        // ── Voice Settings ───────────────────────────────────────────
-        SettingsSection(title = "🔊 AI Voice") {
-            val voices = listOf("alloy", "echo", "fable", "onyx", "nova", "shimmer")
-            voices.forEach { voice ->
-                Row(
+        // ── 2. User Profile Card ─────────────────────────────────
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MintSurface)
+                .padding(horizontal = 20.dp, vertical = 20.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Avatar
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .background(Green600),
+                    contentAlignment = Alignment.Center
                 ) {
-                    RadioButton(
-                        selected = selectedVoice == voice,
-                        onClick = { onVoiceChange(voice) },
-                        colors = RadioButtonDefaults.colors(selectedColor = Blue500)
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(44.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
                     Text(
-                        text = voice.replaceFirstChar { it.uppercase() },
-                        style = MaterialTheme.typography.bodyMedium
+                        text = userName.ifBlank { "User" },
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Gray900
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = if (userName.isBlank()) "Setup your profile" else "Manage your profile",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Gray600
                     )
                 }
             }
         }
 
-        // ── Server Connection ────────────────────────────────────────
-        SettingsSection(title = "🌐 Server Connection") {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "Server Status",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = serverStatus,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = when (serverStatus) {
-                                "Connected" -> Green500
-                                "Disconnected" -> Red500
-                                else -> Gray600
-                            }
-                        )
-                    }
-                    OutlinedButton(onClick = onTestConnection) {
-                        Icon(
-                            Icons.Default.Refresh,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Test")
-                    }
-                }
-            }
-        }
+        Spacer(modifier = Modifier.height(12.dp))
 
-        // ── About ────────────────────────────────────────────────────
-        SettingsSection(title = "ℹ️ About") {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "AICallShield v1.0.0",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    text = "Intelligent AI Call Screening Assistant",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Gray600
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "⚠ Due to Android system-level restrictions, this project implements " +
-                            "a prototype AI call screening model using supported Android APIs and " +
-                            "simulated routing where required.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Gray600
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-    }
-}
-
-@Composable
-private fun SettingsSection(title: String, content: @Composable () -> Unit) {
-    Column(modifier = Modifier.padding(top = 16.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            color = Blue500,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+        // ── 3. Personal Details ──────────────────────────────────
+        SettingsRow(
+            icon = Icons.Default.Person,
+            title = "Personal Details",
+            subtitle = "Name & Gender",
+            onClick = onOpenPersonalDetails
         )
+
+        // ── 4. Assistant Voice ───────────────────────────────────
+        SettingsRow(
+            icon = Icons.Default.RecordVoiceOver,
+            title = "Assistant Voice",
+            subtitle = "Select Assistant Voice",
+            onClick = onOpenAssistantVoice
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // ── 5. 24/7 Priority Support Card ────────────────────────
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 4.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            )
+                .padding(horizontal = 20.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Gray50),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
-            content()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 18.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "24/7 Priority Support",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Gray900
+                    )
+                    Text(
+                        text = "You can call us for any help.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Gray600
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(MintLight),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Phone,
+                        contentDescription = "Call Support",
+                        tint = Green600,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
         }
+
+        // ── 6. Version Info ──────────────────────────────────────
+        Spacer(modifier = Modifier.weight(1f))
+        Text(
+            text = "v2026.02.14",
+            style = MaterialTheme.typography.bodySmall,
+            color = Gray400,
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .padding(bottom = 24.dp, top = 24.dp)
+        )
     }
 }
 
+// ═════════════════════════════════════════════════════════════════
+// Sub-components
+// ═════════════════════════════════════════════════════════════════
+
 @Composable
-private fun SettingsToggle(
+private fun SettingsRow(
+    icon: ImageVector,
     title: String,
-    description: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
+    subtitle: String,
+    onClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+            .clickable(onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = Gray800,
+            modifier = Modifier.size(26.dp)
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Column {
             Text(
                 text = title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold,
+                color = Gray900
             )
             Text(
-                text = description,
+                text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = Gray600
             )
         }
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                checkedTrackColor = Blue500,
-            )
-        )
     }
 }
+
+

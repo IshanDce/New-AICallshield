@@ -11,30 +11,30 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val LightColorScheme = lightColorScheme(
-    primary = Blue500,
+    primary = Green600,
     onPrimary = Color.White,
-    primaryContainer = Blue50,
-    onPrimaryContainer = Blue700,
-    secondary = Green500,
+    primaryContainer = Green50,
+    onPrimaryContainer = Green800,
+    secondary = GreenAccent,
     onSecondary = Color.White,
-    secondaryContainer = Green50,
+    secondaryContainer = MintLight,
     error = Red500,
     onError = Color.White,
-    background = Gray50,
+    background = Color.White,
     onBackground = Gray900,
     surface = Color.White,
     onSurface = Gray800,
-    surfaceVariant = Gray100,
+    surfaceVariant = MintSurface,
     onSurfaceVariant = Gray600,
     outline = Gray400,
 )
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Blue300,
-    onPrimary = Blue700,
-    primaryContainer = Blue700,
-    onPrimaryContainer = Blue50,
-    secondary = Green500,
+    primary = Green400,
+    onPrimary = Green800,
+    primaryContainer = Green800,
+    onPrimaryContainer = Green50,
+    secondary = GreenAccent,
     onSecondary = Color.Black,
     secondaryContainer = Color(0xFF003300),
     error = Color(0xFFEF5350),
@@ -59,7 +59,7 @@ fun AICallShieldTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
+            window.statusBarColor = Color.White.toArgb()
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }
