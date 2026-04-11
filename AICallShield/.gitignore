@@ -32,8 +32,10 @@ build/
 venv/
 .venv/
 
-# Firebase
-serviceAccount.json
+# Local runtime data
+backend/local_storage/
+
+# Cloud config files
 google-services.json
 
 # IDE

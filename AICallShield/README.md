@@ -25,7 +25,7 @@ AICallShield/
 │   ├── routers/          # API route handlers
 │   ├── services/         # AI, STT, TTS, spam detection
 │   ├── models/           # Pydantic schemas
-│   ├── database/         # Firebase client
+│   ├── database/         # Local storage client
 │   ├── main.py           # FastAPI entry point
 │   ├── config.py         # Configuration
 │   └── requirements.txt
@@ -43,8 +43,9 @@ AICallShield/
 - ✅ Scam keyword detection & spam scoring
 - ✅ Sentiment analysis
 - ✅ AI post-call summary generation
-- ✅ Call recording & cloud storage
+- ✅ Call recording & local storage
 - ✅ Chat history with search
+- ✅ No-setup local protection mode (works without backend)
 
 ## 🏗️ Technology Stack
 
@@ -53,7 +54,7 @@ AICallShield/
 | Frontend  | Kotlin, Jetpack Compose, Room DB    |
 | Backend   | Python, FastAPI                     |
 | AI/ML     | OpenAI Whisper, GPT/Gemini, TTS    |
-| Database  | Firebase Firestore + Storage        |
+| Database  | Local JSON + file storage           |
 | Network   | Retrofit, OkHttp                    |
 
 ## 🚀 Getting Started
@@ -66,10 +67,15 @@ pip install -r requirements.txt
 
 # Set environment variables
 # OPENAI_API_KEY=your_key
-# FIREBASE_CREDENTIALS=path/to/serviceAccount.json
+# LOCAL_STORAGE_DIR=local_storage
 
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
+
+### Quick Start (No Backend Setup)
+
+For everyday users, the app can run in local protection mode without configuring Python/FastAPI.
+In this mode, call records are saved on-device and the app uses on-device scam heuristics when cloud AI is unavailable.
 
 ### Android Setup
 
@@ -82,7 +88,7 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 ```
 Incoming Call → Call Detection → Audio Capture → Speech-to-Text
-→ AI Processing → Text-to-Speech → Live UI Update → Database Storage
+→ AI Processing → Text-to-Speech → Live UI Update → Local Storage
 ```
 
 ## ⚠️ Important Note
@@ -114,4 +120,4 @@ Incoming Call → Call Detection → Audio Capture → Speech-to-Text
 | 1     | Call detection + Chat UI           | ⭐⭐        |
 | 2     | STT + AI replies                   | ⭐⭐⭐      |
 | 3     | Spam detection + sentiment         | ⭐⭐⭐⭐    |
-| 4     | Polish + cloud backup              | ⭐⭐⭐⭐⭐  |
+| 4     | Polish + local storage             | ⭐⭐⭐⭐⭐  |

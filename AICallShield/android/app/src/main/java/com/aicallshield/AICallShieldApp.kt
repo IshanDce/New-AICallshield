@@ -3,6 +3,7 @@ package com.aicallshield
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.Context
 import android.os.Build
 
 /**
@@ -13,6 +14,7 @@ class AICallShieldApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        appContext = applicationContext
         createNotificationChannels()
     }
 
@@ -35,5 +37,7 @@ class AICallShieldApp : Application() {
 
     companion object {
         const val CHANNEL_SCREENING = "call_screening_channel"
+        lateinit var appContext: Context
+            private set
     }
 }

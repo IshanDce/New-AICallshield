@@ -26,19 +26,29 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-4o-mini"
     WHISPER_MODEL: str = "whisper-1"
 
+    # ElevenLabs TTS
+    ELEVENLABS_API_KEY: str = os.getenv("ELEVENLABS_API_KEY", "")
+    ELEVENLABS_MODEL: str = "eleven_multilingual_v2"
+    # Voice IDs from ElevenLabs Voice Lab (Settings → Voice ID on each card)
+    ELEVENLABS_VOICE_ASSISTANT: str = os.getenv("ELEVENLABS_VOICE_ASSISTANT", "")  # Main AI screening voice
+    ELEVENLABS_VOICE_ALERT: str = os.getenv("ELEVENLABS_VOICE_ALERT", "")         # Alert/warning voice
+
+    # TTS Provider: "elevenlabs" (default) or "openai"
+    TTS_PROVIDER: str = os.getenv("TTS_PROVIDER", "elevenlabs")
+
     # Google Gemini (alternative to OpenAI)
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     GEMINI_MODEL: str = "gemini-1.5-flash"
 
-    # Firebase
-    FIREBASE_CREDENTIALS: str = os.getenv("FIREBASE_CREDENTIALS", "serviceAccount.json")
-    FIREBASE_STORAGE_BUCKET: str = os.getenv("FIREBASE_STORAGE_BUCKET", "aicallshield.appspot.com")
+    # Local storage (call records + recordings)
+    LOCAL_STORAGE_DIR: str = os.getenv("LOCAL_STORAGE_DIR", "local_storage")
 
     # AI Screening
     SCREENING_SYSTEM_PROMPT: str = (
         "You are an AI call screening assistant named AICallShield. "
         "You answer phone calls on behalf of the user. Be polite, professional, "
-        "and concise. Ask the caller their name, purpose of the call, and if it's urgent. "
+        "and concise. Every response must start with: HI, I AM ASSISTANT. "
+        "Ask the caller their name, purpose of the call, and if it's urgent. "
         "If you detect spam or scam patterns, politely end the conversation. "
         "Keep responses under 2 sentences. Never share any personal information about the user."
     )

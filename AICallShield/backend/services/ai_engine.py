@@ -19,8 +19,22 @@ from services.spam_detection import analyze_spam, detect_sentiment
 
 logger = logging.getLogger(__name__)
 
+ASSISTANT_GREETING_PREFIX = "HI, I AM ASSISTANT."
+
 # Initialize OpenAI client
 openai_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY) if settings.OPENAI_API_KEY else None
+
+
+def _enforce_assistant_greeting(reply_text: str) -> str:
+    """Ensure every AI reply starts with the required assistant introduction."""
+    cleaned = (reply_text or "").strip()
+    if not cleaned:
+        return f"{ASSISTANT_GREETING_PREFIX} Please share your name and reason for calling."
+
+    if cleaned.upper().startswith("HI, I AM ASSISTANT"):
+        return cleaned
+
+    return f"{ASSISTANT_GREETING_PREFIX} {cleaned}"
 
 
 def _build_conversation_messages(
@@ -67,6 +81,7 @@ async def generate_ai_reply(
 
     # Generate AI reply
     reply_text = await _generate_reply_text(caller_message, conversation_history, spam_result.is_spam)
+    reply_text = _enforce_assistant_greeting(reply_text)
 
     return AIReplyResponse(
         reply_text=reply_text,
@@ -88,10 +103,10 @@ async def _generate_reply_text(
     if not openai_client:
         # Mock response when API key is not set
         if is_spam:
-            return "I appreciate your call, but I'm not able to share any personal information or make any transactions. Is there something else I can help with?"
+            return "For security, I cannot share personal information or make any transactions. Please contact through an official channel."
         if not conversation_history:
-            return "Hello! This is an AI assistant screening calls. May I know who's calling and the purpose of your call?"
-        return "Thank you for that information. Let me check if the person you're trying to reach is available. Is there anything else you'd like me to pass along?"
+            return "I am screening this call. May I know your name and the purpose of your call?"
+        return "Thank you. Please share any additional details and I will pass them to the user."
 
     try:
         messages = _build_conversation_messages(conversation_history, caller_message)

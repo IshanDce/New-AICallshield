@@ -167,8 +167,8 @@ class CallSummaryResponse(BaseModel):
 
 class TTSRequest(BaseModel):
     text: str
-    voice: str = "alloy"  # OpenAI voices: alloy, echo, fable, onyx, nova, shimmer
-    speed: float = 1.0
+    voice_role: str = "assistant"  # "assistant" = male (IY8nsD2RIP5N4FFQLaT3)
+                                   # "alert"     = female (1Z7Y8o9cvUeWq8oLKgMY)
 
 
 # ── API Responses ─────────────────────────────────────────────────────

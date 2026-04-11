@@ -3,15 +3,16 @@ package com.aicallshield.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.aicallshield.data.local.LocalCallStore
 import com.aicallshield.data.model.CallRecord
 import com.aicallshield.data.model.CallStatus
-import com.aicallshield.data.model.ChatMessage
 import com.aicallshield.data.model.RiskLevel
 import com.aicallshield.data.repository.CallRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.Instant
 
 /**
  * ViewModel for the Call History screen.
@@ -52,11 +53,16 @@ class CallHistoryViewModel : ViewModel() {
             try {
                 val result = repository.getCallHistory()
                 result.onSuccess { callMaps ->
-                    _calls.value = callMaps.map { parseCallRecord(it) }
+                    val parsed = callMaps.map { parseCallRecord(it) }
+                    _calls.value = parsed
+                    if (parsed.isNotEmpty()) {
+                        LocalCallStore.setCalls(parsed)
+                    } else {
+                        _calls.value = LocalCallStore.getCalls()
+                    }
                 }.onFailure {
                     Log.e(TAG, "Failed to load history", it)
-                    // Load demo data for testing
-                    _calls.value = getDemoCallHistory()
+                    _calls.value = LocalCallStore.getCalls()
                 }
             } finally {
                 _isLoading.value = false
@@ -82,6 +88,7 @@ class CallHistoryViewModel : ViewModel() {
                     _calls.value = callMaps.map { parseCallRecord(it) }
                 }.onFailure {
                     Log.e(TAG, "Search failed", it)
+                    _calls.value = LocalCallStore.searchCalls(query)
                 }
             } finally {
                 _isLoading.value = false
@@ -98,18 +105,28 @@ class CallHistoryViewModel : ViewModel() {
     }
 
     fun deleteCall(call: CallRecord) {
+        LocalCallStore.deleteCall(call.id)
+        _calls.value = _calls.value.filter { it.id != call.id }
+
         viewModelScope.launch {
-            repository.endCall(call.id) // Use as delete
-            _calls.value = _calls.value.filter { it.id != call.id }
+            repository.deleteCall(call.id)
         }
     }
 
     fun blockCaller(call: CallRecord) {
+        val updatedCall = call.copy(
+            status = CallStatus.BLOCKED,
+            isBlocked = true,
+            riskLevel = if (call.riskLevel.ordinal < RiskLevel.HIGH.ordinal) RiskLevel.HIGH else call.riskLevel,
+        )
+
+        LocalCallStore.upsertCall(updatedCall)
+        _calls.value = _calls.value.map {
+            if (it.id == call.id) updatedCall else it
+        }
+
         viewModelScope.launch {
             repository.blockCaller(call.id)
-            _calls.value = _calls.value.map {
-                if (it.id == call.id) it.copy(isBlocked = true) else it
-            }
         }
     }
 
@@ -157,7 +174,10 @@ class CallHistoryViewModel : ViewModel() {
     private fun parseLong(value: Any?): Long {
         return when (value) {
             is Number -> value.toLong()
-            is String -> try { value.toLong() } catch (_: Exception) { System.currentTimeMillis() }
+            is String -> {
+                value.toLongOrNull()
+                    ?: runCatching { Instant.parse(value).toEpochMilli() }.getOrDefault(System.currentTimeMillis())
+            }
             else -> System.currentTimeMillis()
         }
     }
@@ -165,70 +185,11 @@ class CallHistoryViewModel : ViewModel() {
     private fun parseLongOrNull(value: Any?): Long? {
         return when (value) {
             is Number -> value.toLong()
-            is String -> try { value.toLong() } catch (_: Exception) { null }
+            is String -> {
+                value.toLongOrNull()
+                    ?: runCatching { Instant.parse(value).toEpochMilli() }.getOrNull()
+            }
             else -> null
         }
-    }
-
-    // ── Demo Data ────────────────────────────────────────────────────
-
-    private fun getDemoCallHistory(): List<CallRecord> {
-        return listOf(
-            CallRecord(
-                id = "demo_1",
-                callerNumber = "+1 (555) 123-4567",
-                callerName = null,
-                status = CallStatus.ENDED,
-                startTime = System.currentTimeMillis() - 3_600_000,
-                durationSeconds = 45,
-                transcript = listOf(
-                    ChatMessage(sender = com.aicallshield.data.model.SenderType.AI, text = "Hello! This is an AI assistant screening calls. May I know who's calling?"),
-                    ChatMessage(sender = com.aicallshield.data.model.SenderType.CALLER, text = "Hi, I'm calling about your car's extended warranty."),
-                    ChatMessage(sender = com.aicallshield.data.model.SenderType.AI, text = "Thank you. I'll pass your message along. Is there a specific number where you can be reached?"),
-                ),
-                aiSummary = "Caller inquired about extended car warranty. Likely telemarketing/spam call.",
-                spamScore = 0.75f,
-                riskLevel = RiskLevel.HIGH,
-                scamKeywordsFound = listOf("warranty"),
-                sentiment = "neutral",
-            ),
-            CallRecord(
-                id = "demo_2",
-                callerNumber = "+91 98765 43210",
-                callerName = null,
-                status = CallStatus.BLOCKED,
-                startTime = System.currentTimeMillis() - 7_200_000,
-                durationSeconds = 22,
-                transcript = listOf(
-                    ChatMessage(sender = com.aicallshield.data.model.SenderType.AI, text = "Hello! This is an AI assistant. How can I help you?"),
-                    ChatMessage(sender = com.aicallshield.data.model.SenderType.CALLER, text = "Sir, your bank account will be blocked. Please share your OTP now."),
-                    ChatMessage(sender = com.aicallshield.data.model.SenderType.AI, text = "I'm not able to share any personal information or OTP codes. If this is regarding a bank issue, please contact the bank directly through their official number."),
-                ),
-                aiSummary = "⚠ Scam call detected. Caller attempted OTP phishing for bank account. Call was blocked.",
-                spamScore = 0.92f,
-                riskLevel = RiskLevel.CRITICAL,
-                scamKeywordsFound = listOf("bank account", "otp", "blocked account"),
-                sentiment = "negative",
-                isBlocked = true,
-            ),
-            CallRecord(
-                id = "demo_3",
-                callerNumber = "+1 (555) 987-6543",
-                callerName = "John from FedEx",
-                status = CallStatus.USER_JOINED,
-                startTime = System.currentTimeMillis() - 1_800_000,
-                durationSeconds = 120,
-                transcript = listOf(
-                    ChatMessage(sender = com.aicallshield.data.model.SenderType.AI, text = "Hello! This is an AI assistant screening calls. May I know who's calling and the purpose of your call?"),
-                    ChatMessage(sender = com.aicallshield.data.model.SenderType.CALLER, text = "Hi, this is John from FedEx. I have a delivery for your address but nobody was home."),
-                    ChatMessage(sender = com.aicallshield.data.model.SenderType.AI, text = "Thank you John. Let me check with the recipient. Can you hold for a moment?"),
-                    ChatMessage(sender = com.aicallshield.data.model.SenderType.USER, text = "Hi John, I'll be home after 5 PM. Can you redeliver then?"),
-                ),
-                aiSummary = "Legitimate call from FedEx delivery driver. User joined and arranged redelivery for 5 PM.",
-                spamScore = 0.08f,
-                riskLevel = RiskLevel.LOW,
-                sentiment = "positive",
-            ),
-        )
     }
 }

@@ -12,12 +12,14 @@ from typing import Optional
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from models.schemas import CallStatus, SenderType
+from models.schemas import CallStatus, ChatMessage, SenderType
 from services.ai_engine import generate_ai_reply
 from services.spam_detection import analyze_spam, detect_sentiment
 from services.speech_to_text import transcribe_audio
 
 logger = logging.getLogger(__name__)
+
+INITIAL_ASSISTANT_GREETING = "HI, I AM ASSISTANT. I will screen this call and protect your privacy."
 
 router = APIRouter(tags=["WebSocket"])
 
@@ -75,6 +77,18 @@ async def call_screening_websocket(websocket: WebSocket, call_id: str):
         "type": "status",
         "status": "screening",
         "message": "AI screening in progress...",
+        "timestamp": datetime.utcnow().isoformat(),
+    })
+
+    session.conversation_history.append(
+        ChatMessage(sender=SenderType.AI, text=INITIAL_ASSISTANT_GREETING)
+    )
+    await session.send_json({
+        "type": "ai_reply",
+        "text": INITIAL_ASSISTANT_GREETING,
+        "spam_score": 0.0,
+        "risk_level": "low",
+        "sentiment": "neutral",
         "timestamp": datetime.utcnow().isoformat(),
     })
 

@@ -40,6 +40,7 @@ fun CallScreeningScreen(
     currentSpamScore: Float,
     currentRiskLevel: RiskLevel,
     isAIProcessing: Boolean,
+    isLocalMode: Boolean,
     onJoinCall: () -> Unit,
     onBlockCaller: () -> Unit,
     onEndCall: () -> Unit,
@@ -86,6 +87,13 @@ fun CallScreeningScreen(
                             CallStatus.BLOCKED -> Red500
                         }
                     )
+                    if (isLocalMode) {
+                        Text(
+                            text = "📱 Local protection mode",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Orange500
+                        )
+                    }
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
@@ -105,6 +113,28 @@ fun CallScreeningScreen(
                 }
             }
         )
+
+        AnimatedVisibility(
+            visible = isLocalMode,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Orange500.copy(alpha = 0.12f)
+                )
+            ) {
+                Text(
+                    text = "Cloud AI is unavailable. The app is still protecting you with on-device scam rules and local call history.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Gray900,
+                    modifier = Modifier.padding(12.dp)
+                )
+            }
+        }
 
         // ── Spam Score Bar ───────────────────────────────────────────
         AnimatedVisibility(

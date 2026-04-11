@@ -1,7 +1,11 @@
 package com.aicallshield.ui
 
 import android.Manifest
+import android.app.role.RoleManager
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -12,11 +16,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.aicallshield.data.model.CallStatus
 import com.aicallshield.ui.screens.*
@@ -31,14 +35,58 @@ import com.aicallshield.viewmodel.UserViewModel
  */
 class MainActivity : ComponentActivity() {
 
+    private val permissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { /* no-op */ }
+
+    private val callScreeningRoleLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { /* no-op */ }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        requestEssentialPermissions()
+        requestCallScreeningRoleIfNeeded()
 
         setContent {
             AICallShieldTheme {
                 MainApp()
             }
+        }
+    }
+
+    private fun requestEssentialPermissions() {
+        val required = mutableListOf(
+            Manifest.permission.READ_PHONE_STATE,
+            Manifest.permission.ANSWER_PHONE_CALLS,
+            Manifest.permission.RECORD_AUDIO,
+        )
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            required.add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+
+        val missing = required.filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+
+        if (missing.isNotEmpty()) {
+            permissionLauncher.launch(missing.toTypedArray())
+        }
+    }
+
+    private fun requestCallScreeningRoleIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            return
+        }
+
+        val roleManager = getSystemService(RoleManager::class.java) ?: return
+        if (!roleManager.isRoleAvailable(RoleManager.ROLE_CALL_SCREENING)) {
+            return
+        }
+
+        if (!roleManager.isRoleHeld(RoleManager.ROLE_CALL_SCREENING)) {
+            val roleIntent = roleManager.createRequestRoleIntent(RoleManager.ROLE_CALL_SCREENING)
+            callScreeningRoleLauncher.launch(roleIntent)
         }
     }
 }
@@ -64,7 +112,6 @@ sealed class Screen(val route: String, val label: String) {
 @Composable
 fun MainApp() {
     val navController = rememberNavController()
-    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     val userViewModel: UserViewModel = viewModel()
     val userName by userViewModel.userName.collectAsState()
     val userGender by userViewModel.userGender.collectAsState()
@@ -126,6 +173,7 @@ fun MainApp() {
                 val spamScore by screeningViewModel.currentSpamScore.collectAsState()
                 val riskLevel by screeningViewModel.currentRiskLevel.collectAsState()
                 val isProcessing by screeningViewModel.isAIProcessing.collectAsState()
+                val isLocalMode by screeningViewModel.isLocalMode.collectAsState()
 
                 CallScreeningScreen(
                     callerNumber = callerNumber,
@@ -134,6 +182,7 @@ fun MainApp() {
                     currentSpamScore = spamScore,
                     currentRiskLevel = riskLevel,
                     isAIProcessing = isProcessing,
+                    isLocalMode = isLocalMode,
                     onJoinCall = screeningViewModel::joinCall,
                     onBlockCaller = screeningViewModel::blockCaller,
                     onEndCall = {
@@ -144,7 +193,7 @@ fun MainApp() {
                 )
             }
 
-            composable(Screen.CallDetail.route) { backStackEntry ->
+            composable(Screen.CallDetail.route) {
                 val historyViewModel: CallHistoryViewModel = viewModel()
                 val selectedCall by historyViewModel.selectedCall.collectAsState()
 

@@ -100,14 +100,13 @@ async def generate_tts(request: TTSRequest):
     """
     audio_bytes = await text_to_speech(
         text=request.text,
-        voice=request.voice,
-        speed=request.speed,
+        voice_role=request.voice_role,
     )
 
     if audio_bytes is None:
         raise HTTPException(
             status_code=503,
-            detail="TTS service unavailable. Set OPENAI_API_KEY.",
+            detail="TTS service unavailable. Set ELEVENLABS_API_KEY (or OPENAI_API_KEY for fallback).",
         )
 
     return StreamingResponse(

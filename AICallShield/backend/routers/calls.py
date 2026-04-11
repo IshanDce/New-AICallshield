@@ -9,7 +9,7 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
-from database.firebase_client import (
+from database.local_storage import (
     create_call_record,
     delete_call_record,
     get_call_history,

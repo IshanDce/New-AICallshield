@@ -35,6 +35,7 @@ class CallScreeningActivity : ComponentActivity() {
                 val spamScore by viewModel.currentSpamScore.collectAsState()
                 val riskLevel by viewModel.currentRiskLevel.collectAsState()
                 val isProcessing by viewModel.isAIProcessing.collectAsState()
+                val isLocalMode by viewModel.isLocalMode.collectAsState()
 
                 CallScreeningScreen(
                     callerNumber = callerNumber,
@@ -43,6 +44,7 @@ class CallScreeningActivity : ComponentActivity() {
                     currentSpamScore = spamScore,
                     currentRiskLevel = riskLevel,
                     isAIProcessing = isProcessing,
+                    isLocalMode = isLocalMode,
                     onJoinCall = viewModel::joinCall,
                     onBlockCaller = {
                         viewModel.blockCaller()

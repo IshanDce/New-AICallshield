@@ -32,6 +32,13 @@ class WebSocketClient {
     private val gson = Gson()
     private var webSocket: WebSocket? = null
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val wsClient = OkHttpClient.Builder()
+        .connectTimeout(4, TimeUnit.SECONDS)
+        .readTimeout(0, TimeUnit.MILLISECONDS) // Keep WebSocket open indefinitely
+        .writeTimeout(10, TimeUnit.SECONDS)
+        .pingInterval(15, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(true)
+        .build()
 
     // State flows for UI consumption
     private val _connectionState = MutableStateFlow(ConnectionState.DISCONNECTED)
@@ -55,16 +62,12 @@ class WebSocketClient {
 
         _connectionState.value = ConnectionState.CONNECTING
 
-        val client = OkHttpClient.Builder()
-            .readTimeout(0, TimeUnit.MILLISECONDS) // No timeout for WebSocket
-            .build()
-
         val url = "${Constants.WS_BASE_URL}${Constants.WS_CALL_PATH}$callId"
         val request = Request.Builder().url(url).build()
 
         Log.i(TAG, "Connecting to WebSocket: $url")
 
-        webSocket = client.newWebSocket(request, object : WebSocketListener() {
+        webSocket = wsClient.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
                 Log.i(TAG, "WebSocket connected")
                 _connectionState.value = ConnectionState.CONNECTED
@@ -182,6 +185,7 @@ class WebSocketClient {
     fun disconnect() {
         try {
             webSocket?.close(1000, "Client disconnect")
+            webSocket?.cancel()
             webSocket = null
             _connectionState.value = ConnectionState.DISCONNECTED
             Log.i(TAG, "WebSocket disconnected")

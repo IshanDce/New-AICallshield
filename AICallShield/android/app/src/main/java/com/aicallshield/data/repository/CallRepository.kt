@@ -105,6 +105,19 @@ class CallRepository {
         }
     }
 
+    suspend fun deleteCall(callId: String, userId: String = "default_user"): Result<Unit> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = api.deleteCall(callId, userId)
+                if (response.isSuccessful) Result.success(Unit)
+                else Result.failure(Exception("Delete call failed: ${response.code()}"))
+            } catch (e: Exception) {
+                Log.e(TAG, "deleteCall error", e)
+                Result.failure(e)
+            }
+        }
+    }
+
     // ── AI Processing ────────────────────────────────────────────────
 
     suspend fun getAIReply(

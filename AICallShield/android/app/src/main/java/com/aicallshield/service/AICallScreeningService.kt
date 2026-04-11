@@ -1,10 +1,17 @@
 package com.aicallshield.service
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.telecom.Call
 import android.telecom.CallScreeningService
+import android.telecom.TelecomManager
 import android.content.Intent
 import android.util.Log
+import androidx.core.content.ContextCompat
 
 /**
  * Android CallScreeningService that intercepts incoming calls.
@@ -20,6 +27,7 @@ class AICallScreeningService : CallScreeningService() {
 
     companion object {
         private const val TAG = "AICallScreening"
+        private const val ASSISTANT_GREETING = "HI, I AM ASSISTANT. I will screen this call and protect your privacy."
 
         // Shared state for communication with UI
         @Volatile
@@ -47,57 +55,63 @@ class AICallScreeningService : CallScreeningService() {
 
         Log.i(TAG, "Incoming call from: $phoneNumber ($callerName)")
 
-        // Check if number is in contacts (simplified check)
-        val isUnknown = isUnknownNumber(phoneNumber)
+        // Product behavior: screen every incoming call (known or unknown).
+        currentCallNumber = phoneNumber
+        isScreening = true
 
-        if (isUnknown) {
-            Log.i(TAG, "Unknown number detected. Initiating AI screening.")
+        callEventListener?.onIncomingCall(phoneNumber)
+        launchScreeningUI(phoneNumber)
 
-            currentCallNumber = phoneNumber
-            isScreening = true
+        val response = CallResponse.Builder()
+            .setDisallowCall(false)
+            .setRejectCall(false)
+            .setSilenceCall(true)
+            .setSkipCallLog(false)
+            .setSkipNotification(false)
+            .build()
 
-            // Notify listener (UI/ViewModel)
-            callEventListener?.onIncomingCall(phoneNumber)
-
-            // Launch screening activity
-            launchScreeningUI(phoneNumber)
-
-            // Allow the call (we'll handle screening in the UI)
-            // In a production app with default dialer permissions,
-            // you could silently answer and route audio to AI
-            val response = CallResponse.Builder()
-                .setDisallowCall(false)
-                .setRejectCall(false)
-                .setSilenceCall(true)  // Silence the ringtone, let AI handle
-                .setSkipCallLog(false)
-                .setSkipNotification(false)
-                .build()
-
-            respondToCall(callDetails, response)
-
-        } else {
-            Log.i(TAG, "Known contact. Allowing call normally.")
-
-            val response = CallResponse.Builder()
-                .setDisallowCall(false)
-                .setRejectCall(false)
-                .setSilenceCall(false)
-                .setSkipCallLog(false)
-                .setSkipNotification(false)
-                .build()
-
-            respondToCall(callDetails, response)
-        }
+        respondToCall(callDetails, response)
+        Handler(Looper.getMainLooper()).postDelayed(
+            { tryAutoAnswerUnknownCall() },
+            250L
+        )
+        Handler(Looper.getMainLooper()).postDelayed(
+            { CallSpeechEngine.speak(this, ASSISTANT_GREETING) },
+            900L,
+        )
     }
 
     /**
-     * Check if the number is not in the user's contacts.
-     * Simplified — in production, query ContactsContract.
+     * Try to answer the ringing call so AI can start attending immediately.
+     * This is best-effort and depends on OEM/Android policy and dialer role.
      */
-    private fun isUnknownNumber(phoneNumber: String): Boolean {
-        // For the prototype, treat all calls as unknown for demo
-        // In production: query contacts database
-        return true
+    @Suppress("DEPRECATION")
+    private fun tryAutoAnswerUnknownCall() {
+        val hasPermission = ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.ANSWER_PHONE_CALLS,
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (!hasPermission) {
+            Log.w(TAG, "ANSWER_PHONE_CALLS permission missing. Cannot auto-answer.")
+            return
+        }
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            Log.w(TAG, "Auto-answer not supported below Android O in this implementation.")
+            return
+        }
+
+        try {
+            val telecomManager = getSystemService(TelecomManager::class.java)
+            telecomManager?.acceptRingingCall()
+            Log.i(TAG, "Auto-answer requested for unknown call.")
+            callEventListener?.onCallAnswered()
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Auto-answer blocked by OS policy/role restrictions.", e)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to auto-answer incoming call.", e)
+        }
     }
 
     /**
@@ -118,6 +132,7 @@ class AICallScreeningService : CallScreeningService() {
 
     override fun onDestroy() {
         super.onDestroy()
+        CallSpeechEngine.shutdown()
         currentCallNumber = null
         isScreening = false
     }

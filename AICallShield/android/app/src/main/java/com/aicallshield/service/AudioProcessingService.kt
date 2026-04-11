@@ -8,7 +8,7 @@ import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.os.IBinder
-import android.util.Base64
+import android.os.Process
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.aicallshield.AICallShieldApp
@@ -99,7 +99,7 @@ class AudioProcessingService : Service() {
 
         try {
             audioRecord = AudioRecord(
-                MediaRecorder.AudioSource.MIC,
+                MediaRecorder.AudioSource.VOICE_COMMUNICATION,
                 sampleRate,
                 channelConfig,
                 audioEncoding,
@@ -117,10 +117,12 @@ class AudioProcessingService : Service() {
             Log.i(TAG, "Audio recording started for call: $callId")
 
             recordingThread = Thread {
+                Process.setThreadPriority(Process.THREAD_PRIORITY_AUDIO)
+
                 val buffer = ByteArray(bufferSize)
                 val audioChunkBuffer = ByteArrayOutputStream()
                 var bytesCollected = 0
-                val chunkSize = sampleRate * 2 * 3 // 3 seconds of audio
+                val chunkSize = sampleRate * 2 // 1 second of audio for lower latency
 
                 while (isRecording) {
                     val bytesRead = audioRecord?.read(buffer, 0, buffer.size) ?: 0
@@ -129,7 +131,7 @@ class AudioProcessingService : Service() {
                         audioChunkBuffer.write(buffer, 0, bytesRead)
                         bytesCollected += bytesRead
 
-                        // Send chunk every ~3 seconds
+                        // Send chunk every ~1 second
                         if (bytesCollected >= chunkSize) {
                             val chunk = audioChunkBuffer.toByteArray()
                             audioChunkListener?.invoke(chunk)
