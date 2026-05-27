@@ -3,10 +3,12 @@ AICallShield Backend Configuration
 """
 
 import os
+from pathlib import Path
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
 
-load_dotenv()
+_BACKEND_DIR = Path(__file__).resolve().parent
+load_dotenv(dotenv_path=_BACKEND_DIR / ".env", override=True)
 
 
 class Settings(BaseSettings):
@@ -18,8 +20,8 @@ class Settings(BaseSettings):
     DEBUG: bool = True
 
     # Server
-    HOST: str = "0.0.0.0"
-    PORT: int = 8000
+    HOST: str = os.getenv("HOST", "0.0.0.0")
+    PORT: int = int(os.getenv("PORT", "8000"))
 
     # OpenAI
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")

@@ -4,6 +4,7 @@
 
     <!-- Permissions -->
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.READ_CALL_LOG" />
     <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
@@ -13,6 +14,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.MANAGE_OWN_CALLS" />
 
     <application
         android:name=".AICallShieldApp"
@@ -26,7 +28,8 @@
         android:theme="@style/Theme.AICallShield"
         tools:targetApi="34">
 
-        <!-- Main Activity -->
+        <!-- Main Activity — also declares dialer intent filters so the
+             system recognises this app as a candidate default dialer. -->
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
@@ -34,6 +37,16 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Required for default-dialer role candidacy -->
+            <intent-filter>
+                <action android:name="android.intent.action.DIAL" />
+                <data android:scheme="tel" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.DIAL" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
@@ -55,11 +68,34 @@
             </intent-filter>
         </service>
 
+        <!-- InCallService — the core service for answering/rejecting/ending calls.
+             Requires the app to hold the default-dialer role. -->
+        <service
+            android:name=".service.AIInCallService"
+            android:permission="android.permission.BIND_INCALL_SERVICE"
+            android:exported="true">
+            <meta-data
+                android:name="android.telecom.IN_CALL_SERVICE_UI"
+                android:value="true" />
+            <intent-filter>
+                <action android:name="android.telecom.InCallService" />
+            </intent-filter>
+        </service>
+
         <!-- Audio Processing Foreground Service -->
         <service
             android:name=".service.AudioProcessingService"
             android:foregroundServiceType="phoneCall"
             android:exported="false" />
+
+        <!-- Fallback BroadcastReceiver for phone-state changes -->
+        <receiver
+            android:name=".service.CallStateReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.PHONE_STATE" />
+            </intent-filter>
+        </receiver>
 
     </application>
 
